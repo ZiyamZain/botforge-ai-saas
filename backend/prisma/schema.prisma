@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Organization {
+  id             String        @id @default(cuid())
+  name           String
+  email          String        @unique
+  password       String
+  apiKey         String        @unique @default(cuid())
+  plan           Plan          @default(FREE)
+  chatCount      Int           @default(0)
+
+  // BYOK
+  geminiApiKey   String?
+  hasOwnKey      Boolean       @default(false)
+
+  // Chatbot customization
+  botName        String        @default("Assistant")
+  botColor       String        @default("#000000")
+  botGreeting    String        @default("Hi! How can I help you?")
+  botInstructions String       @default("You are a helpful assistant. Be concise and polite.")
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  documents      Document[]
+  sessions       ChatSession[]
+}
+
+model Document {
+  id           String      @id @default(cuid())
+  orgId        String
+  fileName     String
+  fileUrl      String
+  status       DocStatus   @default(PROCESSING)
+  createdAt    DateTime    @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+model ChatSession {
+  id           String       @id @default(cuid())
+  orgId        String
+  createdAt    DateTime     @default(now())
+
+  messages     Message[]
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id        String      @id @default(cuid())
+  sessionId String
+  role      MessageRole
+  content   String
+  createdAt DateTime    @default(now())
+
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+}
+
+enum DocStatus {
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
